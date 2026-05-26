@@ -98,8 +98,21 @@ def list():
         print(f"{task_id:<5} | {status:<12} | {desc:<40} | {time_str:<18}")
     print("-" * 85)
 
-def mark_done():
-    print("temporary4")
+def mark_done(id: int):
+    tasks = load_data()
+
+    task_to_mark = None
+    for task in tasks:
+        if task["id"] == id:
+            task_to_mark = task
+    
+    if not task_to_mark:
+        print("There is no such task with given id.")
+        return 
+
+    task_to_mark["status"] = "done"
+
+    post_data(tasks)
 
 def mark_in_progress():
     print("temporary5")
@@ -140,8 +153,18 @@ if __name__ == "__main__":
 
     elif(args[0] == "list"):
         list()
+
     elif(args[0] == "mark-done"):
-        mark_done()
+        if len(args) != 2:
+            print("Invalid command usage.\nCorrect usage: task mark-done <id>")
+
+        try:
+            id = int(args[1])
+        except ValueError:
+            print("id has to be an integer")
+
+        mark_done(id)
+
     elif(args[0] == "mark-in-progress"):
         mark_in_progress()
     else:
