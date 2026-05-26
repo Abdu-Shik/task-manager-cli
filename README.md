@@ -25,8 +25,9 @@ task delete <id>
 ```
 
 ### 4. Update Task Status
-Mark a task as in-progress or completed.
+Mark a task as todo, in-progress, or completed.
 ```bash
+task mark-todo <id>
 task mark-in-progress <id>
 task mark-done <id>
 ```

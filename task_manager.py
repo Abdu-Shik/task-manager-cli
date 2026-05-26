@@ -1,19 +1,30 @@
 import sys
 import json
+import logging
 from pathlib import Path
 from datetime import datetime
+
+# Configure logging to output cleanly to console
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger("task_manager")
 
 TASK_FILE = Path(__file__).parent / "tasks.json"
 
 def load_data() -> list:
     if not TASK_FILE.exists():
         return []
-    with TASK_FILE.open("r", encoding='utf-8') as file:
-        return json.load(file)
+    try:
+        with TASK_FILE.open("r", encoding='utf-8') as file:
+            return json.load(file)
+    except (json.JSONDecodeError, IOError):
+        return []
 
 def post_data(data: list):
-    with TASK_FILE.open("w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2)
+    try:
+        with TASK_FILE.open("w", encoding="utf-8") as file:
+            json.dump(data, file, indent=2)
+    except IOError as e:
+        logger.error(f"Could not save tasks to database: {e}")
 
 def add(new_task_description: str):
     tasks = load_data()
@@ -21,19 +32,20 @@ def add(new_task_description: str):
     new_task = {
         "id": tasks[-1]['id'] + 1 if len(tasks) else 1,
         "description": new_task_description,
-        "status": "in-progress",
+        "status": "todo",
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat()
     }
 
     tasks.append(new_task)
     post_data(tasks)
+    logger.info(f"Task added successfully (ID: {new_task['id']})")
 
 def update(id: int, new_task_description: str):
     tasks = load_data()
 
     if not len(tasks):
-        print("There are no tasks right now add one before updating.")
+        logger.warning("There are no tasks right now. Add one before updating.")
         return
 
     task_to_update = None
@@ -42,14 +54,14 @@ def update(id: int, new_task_description: str):
             task_to_update = task
     
     if not task_to_update:
-        print("No task with such id.")
+        logger.error(f"No task with ID {id} found.")
         return
     
-    task_to_update["id"] = id
     task_to_update["description"] = new_task_description
-    task_to_update["updated_at"] = datetime.now().isoformat()
+    task_to_update["updatedAt"] = datetime.now().isoformat()
 
     post_data(tasks)
+    logger.info(f"Task updated successfully (ID: {id})")
 
 def delete(id: int):
     tasks = load_data()
@@ -59,18 +71,18 @@ def delete(id: int):
         if task["id"] == id:
             index_to_remove = index
     
-    if index_to_remove == None:
-        print("There is no such task with given id.")
+    if index_to_remove is None:
+        logger.error(f"There is no such task with ID {id}.")
         return 
     
     tasks.pop(index_to_remove)
-
     post_data(tasks)
+    logger.info(f"Task deleted successfully (ID: {id})")
 
 def list():
     tasks = load_data()
     if not tasks:
-        print("No tasks found.")
+        logger.info("No tasks found.")
         return
 
     print("-" * 85)
@@ -81,8 +93,8 @@ def list():
         status = task.get("status", "")
         desc = task.get("description", "")
         
-        # Handle both possible timestamp keys (updated_at and updatedAt)
-        updated = task.get("updated_at") or task.get("updatedAt") or task.get("createdAt") or ""
+        # Handle timestamp keys
+        updated = task.get("updatedAt") or task.get("createdAt") or ""
         if updated:
             try:
                 dt = datetime.fromisoformat(updated)
@@ -107,14 +119,16 @@ def mark_done(id: int):
             task_to_mark = task
     
     if not task_to_mark:
-        print("There is no such task with given id.")
+        logger.error(f"There is no such task with ID {id}.")
         return 
 
     task_to_mark["status"] = "done"
+    task_to_mark["updatedAt"] = datetime.now().isoformat()
 
     post_data(tasks)
+    logger.info(f"Task marked as done (ID: {id})")
 
-def mark_in_progress():
+def mark_in_progress(id: int):
     tasks = load_data()
 
     task_to_mark = None
@@ -123,70 +137,124 @@ def mark_in_progress():
             task_to_mark = task
     
     if not task_to_mark:
-        print("There is no such task with given id.")
+        logger.error(f"There is no such task with ID {id}.")
         return 
 
     task_to_mark["status"] = "in-progress"
+    task_to_mark["updatedAt"] = datetime.now().isoformat()
 
     post_data(tasks)
+    logger.info(f"Task marked as in-progress (ID: {id})")
 
+def mark_todo(id: int):
+    tasks = load_data()
 
+    task_to_mark = None
+    for task in tasks:
+        if task["id"] == id:
+            task_to_mark = task
+    
+    if not task_to_mark:
+        logger.error(f"There is no such task with ID {id}.")
+        return 
+
+    task_to_mark["status"] = "todo"
+    task_to_mark["updatedAt"] = datetime.now().isoformat()
+
+    post_data(tasks)
+    logger.info(f"Task marked as todo (ID: {id})")
+
+def show_all_commands():
+    print("Usage: task <command> [arguments]")
+    print("\nAvailable commands:")
+    print("  add <task_description>          Add a new task")
+    print("  update <id> <description>       Update a task's description")
+    print("  delete <id>                     Delete a task")
+    print("  list                            List all tasks")
+    print("  mark-done <id>                  Mark a task as done")
+    print("  mark-in-progress <id>           Mark a task as in-progress")
+    print("  mark-todo <id>                  Mark a task as todo")
+    sys.exit(0)
 
 if __name__ == "__main__":
     args = sys.argv[1:]
 
-    if(args[0] == "add"):
+    if len(args) == 0:
+        show_all_commands()
+
+    command = args[0]
+
+    if command == "add":
         if len(args) != 2:
-            print("Invalid command usage.\nCorrect usage: task add <task_description>")
+            logger.error("Invalid command usage.\nCorrect usage: task add <task_description>")
+            sys.exit(1)
 
         new_task_description = args[1]
         add(new_task_description)
 
-    elif(args[0] == "update"):
+    elif command == "update":
         if len(args) != 3:
-            print("Invalid command usage.\nCorrect usage: task update <id> <new_task_description>")
+            logger.error("Invalid command usage.\nCorrect usage: task update <id> <new_task_description>")
+            sys.exit(1)
         try:
             id = int(args[1])
             new_task_description = args[2]
+            update(id, new_task_description)
         except ValueError:
-            print("id has to be an integer")
+            logger.error("id has to be an integer")
+            sys.exit(1)
 
-        update(id, new_task_description)
-
-    elif(args[0] == "delete"):
+    elif command == "delete":
         if len(args) != 2:
-            print("Invalid command usage.\nCorrect usage: task delete <id>")
+            logger.error("Invalid command usage.\nCorrect usage: task delete <id>")
+            sys.exit(1)
         
         try:
             id = int(args[1])
+            delete(id)
         except ValueError:
-            print("id has to be an integer")
+            logger.error("id has to be an integer")
+            sys.exit(1)
 
-        delete(id)
-
-    elif(args[0] == "list"):
+    elif command == "list":
         list()
 
-    elif(args[0] == "mark-done"):
+    elif command == "mark-done":
         if len(args) != 2:
-            print("Invalid command usage.\nCorrect usage: task mark-done <id>")
+            logger.error("Invalid command usage.\nCorrect usage: task mark-done <id>")
+            sys.exit(1)
 
         try:
             id = int(args[1])
+            mark_done(id)
         except ValueError:
-            print("id has to be an integer")
+            logger.error("id has to be an integer")
+            sys.exit(1)
 
-        mark_done(id)
-
-    elif(args[0] == "mark-in-progress"):
+    elif command == "mark-in-progress":
         if len(args) != 2:
-            print("Invalid command usage.\nCorrect usage: task mark-in-progress <id>")
+            logger.error("Invalid command usage.\nCorrect usage: task mark-in-progress <id>")
+            sys.exit(1)
 
         try:
             id = int(args[1])
+            mark_in_progress(id)
         except ValueError:
-            print("id has to be an integer")
+            logger.error("id has to be an integer")
+            sys.exit(1)
 
-        mark_in_progress()
+    elif command == "mark-todo":
+        if len(args) != 2:
+            logger.error("Invalid command usage.\nCorrect usage: task mark-todo <id>")
+            sys.exit(1)
+
+        try:
+            id = int(args[1])
+            mark_todo(id)
+        except ValueError:
+            logger.error("id has to be an integer")
+            sys.exit(1)
+            
     else:
-        print("temporary")
+        logger.error(f"Invalid command '{command}'.")
+        show_all_commands()
