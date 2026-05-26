@@ -56,9 +56,34 @@ def delete():
 
 def list():
     tasks = load_data()
-    
+    if not tasks:
+        print("No tasks found.")
+        return
+
+    print("-" * 85)
+    print(f"{'ID':<5} | {'Status':<12} | {'Description':<40} | {'Last Updated':<18}")
+    print("-" * 85)
     for task in tasks:
-        print(task)
+        task_id = task.get("id", "")
+        status = task.get("status", "")
+        desc = task.get("description", "")
+        
+        # Handle both possible timestamp keys (updated_at and updatedAt)
+        updated = task.get("updated_at") or task.get("updatedAt") or task.get("createdAt") or ""
+        if updated:
+            try:
+                dt = datetime.fromisoformat(updated)
+                time_str = dt.strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                time_str = str(updated)
+        else:
+            time_str = ""
+
+        if len(desc) > 37:
+            desc = desc[:37] + "..."
+            
+        print(f"{task_id:<5} | {status:<12} | {desc:<40} | {time_str:<18}")
+    print("-" * 85)
 
 def mark_done():
     print("temporary4")
