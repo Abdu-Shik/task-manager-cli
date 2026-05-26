@@ -115,7 +115,20 @@ def mark_done(id: int):
     post_data(tasks)
 
 def mark_in_progress():
-    print("temporary5")
+    tasks = load_data()
+
+    task_to_mark = None
+    for task in tasks:
+        if task["id"] == id:
+            task_to_mark = task
+    
+    if not task_to_mark:
+        print("There is no such task with given id.")
+        return 
+
+    task_to_mark["status"] = "in-progress"
+
+    post_data(tasks)
 
 
 
@@ -166,6 +179,14 @@ if __name__ == "__main__":
         mark_done(id)
 
     elif(args[0] == "mark-in-progress"):
+        if len(args) != 2:
+            print("Invalid command usage.\nCorrect usage: task mark-in-progress <id>")
+
+        try:
+            id = int(args[1])
+        except ValueError:
+            print("id has to be an integer")
+
         mark_in_progress()
     else:
         print("temporary")

@@ -2,7 +2,7 @@
   {
     "id": 1,
     "description": "Buy some milk",
-    "status": "done",
+    "status": "in-progress",
     "createdAt": "2026-05-26T17:53:56.601672",
     "updatedAt": "2026-05-26T17:53:56.601696"
   }
