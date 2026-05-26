@@ -79,8 +79,15 @@ def delete(id: int):
     post_data(tasks)
     logger.info(f"Task deleted successfully (ID: {id})")
 
-def list():
+def list(status_filter: str = None):
     tasks = load_data()
+    if status_filter:
+        status_filter = status_filter.lower()
+        if status_filter not in ["todo", "in-progress", "done"]:
+            logger.error(f"Invalid status filter '{status_filter}'. Use 'todo', 'in-progress', or 'done'.")
+            return
+        tasks = [t for t in tasks if t.get("status") == status_filter]
+
     if not tasks:
         logger.info("No tasks found.")
         return
@@ -217,7 +224,8 @@ if __name__ == "__main__":
             sys.exit(1)
 
     elif command == "list":
-        list()
+        status_filter = args[1] if len(args) > 1 else None
+        list(status_filter)
 
     elif command == "mark-done":
         if len(args) != 2:

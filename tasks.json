@@ -21,5 +21,12 @@
     "status": "done",
     "createdAt": "2026-05-26T18:12:58.107092",
     "updatedAt": "2026-05-26T18:21:35.943129"
+  },
+  {
+    "id": 4,
+    "description": "go to the gym",
+    "status": "todo",
+    "createdAt": "2026-05-26T18:24:01.594559",
+    "updatedAt": "2026-05-26T18:24:01.594580"
   }
 ]
