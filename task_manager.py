@@ -51,8 +51,21 @@ def update(id: int, new_task_description: str):
 
     post_data(tasks)
 
-def delete():
-    print("temporary2")
+def delete(id: int):
+    tasks = load_data()
+
+    index_to_remove = None
+    for index, task in enumerate(tasks):
+        if task["id"] == id:
+            index_to_remove = index
+    
+    if index_to_remove == None:
+        print("There is no such task with given id.")
+        return 
+    
+    tasks.pop(index_to_remove)
+
+    post_data(tasks)
 
 def list():
     tasks = load_data()
@@ -97,14 +110,14 @@ if __name__ == "__main__":
     args = sys.argv[1:]
 
     if(args[0] == "add"):
-        if(len(args) != 2):
+        if len(args) != 2:
             print("Invalid command usage.\nCorrect usage: task add <task_description>")
 
         new_task_description = args[1]
         add(new_task_description)
 
     elif(args[0] == "update"):
-        if(len(args) != 3):
+        if len(args) != 3:
             print("Invalid command usage.\nCorrect usage: task update <id> <new_task_description>")
         try:
             id = int(args[1])
@@ -115,7 +128,16 @@ if __name__ == "__main__":
         update(id, new_task_description)
 
     elif(args[0] == "delete"):
-        delete()
+        if len(args) != 2:
+            print("Invalid command usage.\nCorrect usage: task delete <id>")
+        
+        try:
+            id = int(args[1])
+        except ValueError:
+            print("id has to be an integer")
+
+        delete(id)
+
     elif(args[0] == "list"):
         list()
     elif(args[0] == "mark-done"):
