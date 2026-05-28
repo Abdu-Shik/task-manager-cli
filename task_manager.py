@@ -1,8 +1,30 @@
+import sqlite3
 import sys
 import json
 import logging
 from pathlib import Path
+from contextlib import closing 
 from datetime import datetime
+
+DB_FILE = Path(__file__).parent / "tasks.db"
+
+def get_connection():
+    return sqlite3.connect(DB_FILE)
+
+def init_db():
+    with closing(get_connection()) as conn:
+        with conn:
+            stmt = """
+                CREATE TABLE IF NOT EXISTS tasks( 
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    description TEXT,
+                    status      TEXT DEFAULT 'todo' CHECK(STATUS IN ('todo', 'in-progress', 'done')),
+                    updated_at  TEXT DEFAULT (datetime('now', 'localtime')),
+                    created_at  TEXT DEFAULT (datetime('now', 'localtime'))
+                )
+            """
+
+            conn.execute(stmt)
 
 # Configure logging to output cleanly to console
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -26,67 +48,79 @@ def post_data(data: list):
     except IOError as e:
         logger.error(f"Could not save tasks to database: {e}")
 
+
+def _get_all_tasks() -> list:
+    """Fetches all tasks from the db and returns as a Python list or dictionaries"""
+    try:
+        with closing(get_connection()) as conn:
+            stmt = "SELECT id, description, status, updated_at, created_at FROM tasks"
+
+            conn.row_factory = sqlite3.Row
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(stmt)
+                return cursor.fetchall()
+            
+    except sqlite3.Error as e:
+        logger.error(f"Falied to fetch tasks: {e}")
+        return []
+
+
 def add(new_task_description: str):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    INSERT INTO tasks (description) VALUES (?)
+                """
 
-    new_task = {
-        "id": tasks[-1]['id'] + 1 if len(tasks) else 1,
-        "description": new_task_description,
-        "status": "todo",
-        "createdAt": datetime.now().isoformat(),
-        "updatedAt": datetime.now().isoformat()
-    }
+                cursor = conn.execute(stmt, (new_task_description,))
 
-    tasks.append(new_task)
-    post_data(tasks)
-    logger.info(f"Task added successfully (ID: {new_task['id']})")
+                new_id = cursor.lastrowid
+
+                logger.info(f"Task added successfully (ID: {new_id})")
+            
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")    
 
 def update(id: int, new_task_description: str):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    UPDATE tasks SET description = ?, updated_at = datetime('now', 'localtime') WHERE id = ?
+                """
+                
+                conn.execute(stmt, (new_task_description, id))
 
-    if not len(tasks):
-        logger.warning("There are no tasks right now. Add one before updating.")
-        return
-
-    task_to_update = None
-    for task in tasks:
-        if task["id"] == id:
-            task_to_update = task
+                logger.info(f"Task updated successfully (ID: {id})")
+                
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")
     
-    if not task_to_update:
-        logger.error(f"No task with ID {id} found.")
-        return
-    
-    task_to_update["description"] = new_task_description
-    task_to_update["updatedAt"] = datetime.now().isoformat()
-
-    post_data(tasks)
-    logger.info(f"Task updated successfully (ID: {id})")
 
 def delete(id: int):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    DELETE FROM tasks WHERE ID = ?
+                """
 
-    index_to_remove = None
-    for index, task in enumerate(tasks):
-        if task["id"] == id:
-            index_to_remove = index
-    
-    if index_to_remove is None:
-        logger.error(f"There is no such task with ID {id}.")
-        return 
-    
-    tasks.pop(index_to_remove)
-    post_data(tasks)
-    logger.info(f"Task deleted successfully (ID: {id})")
+                conn.execute(stmt, (id,))
 
-def list(status_filter: str = None):
-    tasks = load_data()
+                logger.info(f"Task was deleted successfully (ID: {id})")
+    
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")
+
+def display_tasks(status_filter: str = None):
+    tasks = _get_all_tasks()
     if status_filter:
         status_filter = status_filter.lower()
         if status_filter not in ["todo", "in-progress", "done"]:
             logger.error(f"Invalid status filter '{status_filter}'. Use 'todo', 'in-progress', or 'done'.")
             return
-        tasks = [t for t in tasks if t.get("status") == status_filter]
+        tasks = [t for t in tasks if t["status"] == status_filter]
 
     if not tasks:
         logger.info("No tasks found.")
@@ -96,12 +130,12 @@ def list(status_filter: str = None):
     print(f"{'ID':<5} | {'Status':<12} | {'Description':<40} | {'Last Updated':<18}")
     print("-" * 85)
     for task in tasks:
-        task_id = task.get("id", "")
-        status = task.get("status", "")
-        desc = task.get("description", "")
+        task_id = task["id"]
+        status = task["status"]
+        desc = task["description"]
         
         # Handle timestamp keys
-        updated = task.get("updatedAt") or task.get("createdAt") or ""
+        updated = task["updated_at"] or task["created_at"] or ""
         if updated:
             try:
                 dt = datetime.fromisoformat(updated)
@@ -118,58 +152,48 @@ def list(status_filter: str = None):
     print("-" * 85)
 
 def mark_done(id: int):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    UPDATE tasks SET status = 'done' WHERE id = ?
+                """
 
-    task_to_mark = None
-    for task in tasks:
-        if task["id"] == id:
-            task_to_mark = task
-    
-    if not task_to_mark:
-        logger.error(f"There is no such task with ID {id}.")
-        return 
+                conn.execute(stmt, (id,))
 
-    task_to_mark["status"] = "done"
-    task_to_mark["updatedAt"] = datetime.now().isoformat()
+                logger.info(f"Task marked as done (ID: {id})")
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")
 
-    post_data(tasks)
-    logger.info(f"Task marked as done (ID: {id})")
+   
 
 def mark_in_progress(id: int):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    UPDATE tasks SET status = 'in-progress' WHERE id = ?
+                """
 
-    task_to_mark = None
-    for task in tasks:
-        if task["id"] == id:
-            task_to_mark = task
-    
-    if not task_to_mark:
-        logger.error(f"There is no such task with ID {id}.")
-        return 
+                conn.execute(stmt, (id,))
 
-    task_to_mark["status"] = "in-progress"
-    task_to_mark["updatedAt"] = datetime.now().isoformat()
-
-    post_data(tasks)
-    logger.info(f"Task marked as in-progress (ID: {id})")
+                logger.info(f"Task marked as done (ID: {id})")
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")
 
 def mark_todo(id: int):
-    tasks = load_data()
+    try:
+        with closing(get_connection()) as conn:
+            with conn:
+                stmt = """
+                    UPDATE tasks SET status = 'todo' WHERE id = ?
+                """
 
-    task_to_mark = None
-    for task in tasks:
-        if task["id"] == id:
-            task_to_mark = task
-    
-    if not task_to_mark:
-        logger.error(f"There is no such task with ID {id}.")
-        return 
+                conn.execute(stmt, (id,))
 
-    task_to_mark["status"] = "todo"
-    task_to_mark["updatedAt"] = datetime.now().isoformat()
-
-    post_data(tasks)
-    logger.info(f"Task marked as todo (ID: {id})")
+                logger.info(f"Task marked as done (ID: {id})")
+    except sqlite3.Error as e:
+        logger.error(f"An error occurred: {e}")
 
 def show_all_commands():
     print("Usage: task <command> [arguments]")
@@ -184,6 +208,7 @@ def show_all_commands():
     sys.exit(0)
 
 if __name__ == "__main__":
+    init_db()
     args = sys.argv[1:]
 
     if len(args) == 0:
@@ -225,7 +250,7 @@ if __name__ == "__main__":
 
     elif command == "list":
         status_filter = args[1] if len(args) > 1 else None
-        list(status_filter)
+        display_tasks(status_filter)
 
     elif command == "mark-done":
         if len(args) != 2:
