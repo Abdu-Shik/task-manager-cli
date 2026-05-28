@@ -95,7 +95,7 @@ def update(id: int, new_task_description: str):
                 if cursor.rowcount > 0:
                     logger.info(f"Task updated successfully (ID: {id})")
                 else:
-                    logger.error(f"Task not found (ID: {id})")
+                    logger.warning(f"Task not found (ID: {id})")
 
     except sqlite3.Error as e:
         logger.error(f"An error occurred: {e}")
@@ -114,7 +114,7 @@ def delete(id: int):
                 if cursor.rowcount > 0:
                     logger.info(f"Task was deleted successfully (ID: {id})")
                 else:
-                    logger.error(f"Task not found (ID: {id})")
+                    logger.warning(f"Task not found (ID: {id})")
     
     except sqlite3.Error as e:
         logger.error(f"An error occurred: {e}")
@@ -165,9 +165,12 @@ def mark_done(id: int):
                     UPDATE tasks SET status = 'done', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
-                conn.execute(stmt, (id,))
+                cursor = conn.execute(stmt, (id,))
 
-                logger.info(f"Task marked as done (ID: {id})")
+                if cursor.rowcount > 0:
+                    logger.info(f"Task marked as 'done' (ID: {id})")
+                else:
+                    logger.warning(f"Task not found (ID: {id})")
     except sqlite3.Error as e:
         logger.error(f"An error occurred: {e}")
 
@@ -181,9 +184,12 @@ def mark_in_progress(id: int):
                     UPDATE tasks SET status = 'in-progress', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
-                conn.execute(stmt, (id,))
+                cursor = conn.execute(stmt, (id,))
 
-                logger.info(f"Task marked as done (ID: {id})")
+                if cursor.rowcount > 0:
+                    logger.info(f"Task marked as 'in progress' (ID: {id})")
+                else:
+                    logger.warning(f"Task not found (ID: {id})")
     except sqlite3.Error as e:
         logger.error(f"An error occurred: {e}")
 
@@ -195,9 +201,13 @@ def mark_todo(id: int):
                     UPDATE tasks SET status = 'todo', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
-                conn.execute(stmt, (id,))
+                cursor = conn.execute(stmt, (id,))
 
-                logger.info(f"Task marked as done (ID: {id})")
+                if cursor.rowcount > 0:
+                    logger.info(f"Task marked as 'todo' (ID: {id})")
+                else:
+                    logger.warning(f"Task not found (ID: {id})")
+
     except sqlite3.Error as e:
         logger.error(f"An error occurred: {e}")
 
