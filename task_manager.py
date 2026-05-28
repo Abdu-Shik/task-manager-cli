@@ -61,7 +61,7 @@ def _get_all_tasks() -> list:
                 return cursor.fetchall()
             
     except sqlite3.Error as e:
-        logger.error(f"Falied to fetch tasks: {e}")
+        logger.error(f"Failed to fetch tasks: {e}")
         return []
 
 
