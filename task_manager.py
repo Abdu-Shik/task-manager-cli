@@ -1,6 +1,5 @@
 import sqlite3
 import sys
-import json
 import logging
 from pathlib import Path
 from contextlib import closing 
@@ -29,24 +28,6 @@ def init_db():
 # Configure logging to output cleanly to console
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("task_manager")
-
-TASK_FILE = Path(__file__).parent / "tasks.json"
-
-def load_data() -> list:
-    if not TASK_FILE.exists():
-        return []
-    try:
-        with TASK_FILE.open("r", encoding='utf-8') as file:
-            return json.load(file)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-def post_data(data: list):
-    try:
-        with TASK_FILE.open("w", encoding="utf-8") as file:
-            json.dump(data, file, indent=2)
-    except IOError as e:
-        logger.error(f"Could not save tasks to database: {e}")
 
 
 def _get_all_tasks() -> list:
