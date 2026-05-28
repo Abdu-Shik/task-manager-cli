@@ -162,7 +162,7 @@ def mark_done(id: int):
         with closing(get_connection()) as conn:
             with conn:
                 stmt = """
-                    UPDATE tasks SET status = 'done' WHERE id = ?
+                    UPDATE tasks SET status = 'done', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
                 conn.execute(stmt, (id,))
@@ -178,7 +178,7 @@ def mark_in_progress(id: int):
         with closing(get_connection()) as conn:
             with conn:
                 stmt = """
-                    UPDATE tasks SET status = 'in-progress' WHERE id = ?
+                    UPDATE tasks SET status = 'in-progress', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
                 conn.execute(stmt, (id,))
@@ -192,7 +192,7 @@ def mark_todo(id: int):
         with closing(get_connection()) as conn:
             with conn:
                 stmt = """
-                    UPDATE tasks SET status = 'todo' WHERE id = ?
+                    UPDATE tasks SET status = 'todo', updated_at = datetime('now', 'localtime') WHERE id = ?
                 """
 
                 conn.execute(stmt, (id,))
