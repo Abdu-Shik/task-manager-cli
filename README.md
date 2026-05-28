@@ -43,3 +43,31 @@ task list done
 
 ## Data Storage
 All tasks are stored in `tasks.json` inside the directory where `task_manager.py` resides.
+
+## Installation & Setup
+
+To run the `task` command from anywhere in your terminal, add the project directory to your system's `PATH`.
+
+### Windows (Add to PATH)
+Run one of the following commands in your terminal (replace `C:\path\to\task-cli` with the actual folder path):
+
+- **Command Prompt (CMD)**:
+  ```cmd
+  setx PATH "%PATH%;C:\path\to\task-cli"
+  ```
+
+- **PowerShell**:
+  ```powershell
+  [System.Environment]::SetEnvironmentVariable("PATH", [System.Environment]::GetEnvironmentVariable("PATH", "User") + ";C:\path\to\task-cli", "User")
+  ```
+
+### macOS / Linux (Add to PATH)
+1. Add the directory to your shell configuration (e.g., `~/.bashrc`, `~/.zshrc`):
+   ```bash
+   export PATH="$PATH:/path/to/task-cli"
+   ```
+2. Make the script executable:
+   ```bash
+   chmod +x /path/to/task-cli/task
+   ```
+3. Restart or source your configuration (`source ~/.zshrc`), then run the command: `task <command>`.
