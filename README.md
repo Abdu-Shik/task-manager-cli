@@ -2,6 +2,39 @@
 
 A lightweight command-line interface (CLI) task tracker built in Python. Tasks are persisted in a SQLite database file (`tasks.db`).
 
+## Data Storage
+
+All tasks are stored in a SQLite database file named `tasks.db` in the same directory as `task_manager.py`.
+
+## Quick Start
+
+If you are starting from scratch, clone the repository and move into the project folder first:
+
+```bash
+git clone <repository-url>
+cd task-cli
+```
+
+Then run the CLI from the project folder:
+
+You can run the CLI in two ways on Windows:
+
+1. From inside the project folder, use the local wrapper directly:
+
+```powershell
+.\task list
+```
+
+On macOS and Linux, use:
+
+```bash
+./task list
+```
+
+2. To run `task` from anywhere in your terminal, add the project directory to your system's `PATH`.
+
+Jump to the PATH instructions in [Windows (Add to PATH)](#windows-add-to-path) or [macOS / Linux (Add to PATH)](#macos--linux-add-to-path).
+
 ## Usage
 
 Run `task` followed by one of the commands below:
@@ -51,13 +84,7 @@ task list in-progress
 task list done
 ```
 
-## Data Storage
-
-All tasks are stored in a SQLite database file named `tasks.db` in the same directory as `task_manager.py`.
-
 ## Installation & Setup
-
-To run the `task` command from anywhere in your terminal, add the project directory to your system's `PATH`.
 
 ### Windows (Add to PATH)
 
@@ -73,6 +100,8 @@ Run one of the following commands in your terminal (replace `C:\path\to\task-cli
   ```powershell
   [System.Environment]::SetEnvironmentVariable("PATH", [System.Environment]::GetEnvironmentVariable("PATH", "User") + ";C:\path\to\task-cli", "User")
   ```
+
+After that, you can use `task <command>` from any directory.
 
 ### macOS / Linux (Add to PATH)
 
