@@ -2,6 +2,8 @@
 
 A lightweight command-line interface (CLI) task tracker built in Python. Tasks are persisted in a SQLite database file (`tasks.db`).
 
+This project implements the "Task Tracker" from roadmap.sh: https://roadmap.sh/projects/task-tracker
+
 ## Data Storage
 
 All tasks are stored in a SQLite database file named `tasks.db` in the same directory as `task_manager.py`.
